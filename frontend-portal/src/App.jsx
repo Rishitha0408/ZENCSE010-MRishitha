@@ -54,23 +54,54 @@ const VerificationPortal = () => {
                 </p>
             </div>
 
-            <div className="bg-white p-2 rounded-3xl shadow-2xl border border-slate-100 mb-12 max-w-2xl mx-auto">
-                <div className="flex flex-col md:flex-row gap-2">
-                    <input
-                        type="text"
-                        placeholder="Enter Certificate ID (e.g. CERT-uuid)"
-                        className="flex-1 px-8 py-5 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-lg font-medium tracking-wide"
-                        value={certId}
-                        onChange={(e) => setCertId(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && verifyCertificate()}
-                    />
-                    <button
-                        onClick={() => verifyCertificate()}
-                        disabled={loading}
-                        className="bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-2xl font-bold transition-all shadow-xl hover:shadow-slate-200 active:scale-95 disabled:opacity-50"
-                    >
-                        {loading ? 'VERIFYING...' : 'VERIFY NOW'}
-                    </button>
+            <div className="max-w-2xl mx-auto mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                    <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-200">
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Scan QR Code</h3>
+                        <p className="text-blue-100 text-sm">Point your camera at the certificate QR code for instant results.</p>
+                    </div>
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100">
+                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4 text-slate-600">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2 text-slate-900">Manual Search</h3>
+                        <p className="text-slate-500 text-sm">Enter the unique Certificate ID below to verify the credential.</p>
+                    </div>
+                </div>
+
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative bg-white p-2 rounded-[1.8rem] shadow-2xl border border-slate-100">
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    placeholder="Enter Certificate ID..."
+                                    className="w-full px-8 py-5 rounded-2xl bg-slate-50 border-none focus:ring-0 outline-none text-lg font-medium tracking-wide"
+                                    value={certId}
+                                    onChange={(e) => setCertId(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && verifyCertificate()}
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 font-mono text-xs hidden md:block">
+                                    PRESS ENTER ↵
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => verifyCertificate()}
+                                disabled={loading}
+                                className="bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-2xl font-bold transition-all shadow-xl hover:shadow-slate-200 active:scale-95 disabled:opacity-50"
+                            >
+                                {loading ? 'VERIFYING...' : 'VERIFY NOW'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -126,6 +157,13 @@ const VerificationPortal = () => {
                         <div className="mt-8 p-4 bg-white/50 rounded-xl border border-white/50 text-sm text-slate-600 italic">
                             "{result.message}"
                         </div>
+
+                        <button
+                            onClick={() => setResult(null)}
+                            className="w-full mt-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all border border-slate-200"
+                        >
+                            VERIFY ANOTHER CERTIFICATE
+                        </button>
                     </div>
                 </div>
             )}
