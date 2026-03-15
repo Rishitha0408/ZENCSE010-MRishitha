@@ -17,6 +17,7 @@ import pymongo
 from app.models.certificate import CertificateDocument, Signature, QR, generate_cert_id
 from app.services.signature_service import sign_certificate
 from app.services.qr_service import generate_qr_base64
+from app.services.linkedin_service import generate_linkedin_share_url
 from app.config import settings
 
 async def issue_certificate(request, db):
@@ -74,17 +75,12 @@ async def issue_certificate(request, db):
     await db.certificates.insert_one(cert_doc.model_dump())
     
     # STEP 6: Student Social Proof.
-    # We build a 'LinkedIn' compatible link that pre-fills the certification details for the student.
-    linkedin_params = {
-        "startTask": "CERTIFICATION_NAME",
-        "name": request.certificate.title,
-        "organizationName": "Your Institution",
-        "issueYear": str(issued_at.year),
-        "issueMonth": str(issued_at.month),
-        "certUrl": verify_url,
-        "certId": cert_id
-    }
-    linkedin_share_url = f"https://www.linkedin.com/profile/add?{urllib.parse.urlencode(linkedin_params)}"
+    linkedin_share_url = generate_linkedin_share_url(
+        cert_id=cert_id,
+        title=request.certificate.title,
+        issued_at=issued_at,
+        institution_name="Your Institution" # Could be from settings
+    )
     
     # Return the clean summary response for the API.
     return {
@@ -107,24 +103,19 @@ async def get_certificate(certificate_id: str, db) -> dict | None:
 
 async def list_certificates(db, skip: int = 0, limit: int = 20) -> list[dict]:
     """
-    Retrieves a list of certificates with pagination (skipping and limiting).
-    This prevents the system from being overwhelmed by too many records at once.
+    Retrieves a list of certificates with pagination.
     """
-    # We sort by 'created_at' in DESCENDING order to show the newest certificates first.
-    cursor = db.certificates.find({}, {"_id": 0}).sort("created_at", pymongo.DESCENDING).skip(skip).limit(limit)
-    # Convert the cursor results into a simple python list.
+    # Use 'issued_at' or 'created_at'? The previous code used 'created_at'.
+    # Checking what's in the document. CertificateDocument has 'issued_at'.
+    cursor = db.certificates.find({}, {"_id": 0}).sort("issued_at", pymongo.DESCENDING).skip(skip).limit(limit)
     return await cursor.to_list(length=limit)
 
-async def revoke_certificate(certificate_id: str, reason: str, revoked_by: str, db) -> bool:
+async def revoke_certificate(certificate_id: str, db, reason: str = "Revoked by admin", revoked_by: str = "admin") -> bool:
     """
     Invalidates an existing certificate.
-    
-    Wait! We don't DELETE from the database. 
-    Instead, we mark it as 'REVOKED' so we keep an audit trail of why and when it was cancelled.
     """
     revoked_at = datetime.datetime.now(datetime.timezone.utc)
     
-    # Use 'update_one' to efficiently update only the status and revocation metadata.
     result = await db.certificates.update_one(
         {"certificate_id": certificate_id},
         {"$set": {
@@ -137,5 +128,35 @@ async def revoke_certificate(certificate_id: str, reason: str, revoked_by: str, 
         }}
     )
     
-    # 'modified_count > 0' tells us if we actually found and changed a document.
     return result.modified_count > 0
+
+async def get_stats(db) -> dict:
+    """
+    Returns summary statistics for the dashboard.
+    """
+    total = await db.certificates.count_documents({})
+    active = await db.certificates.count_documents({"status": "ACTIVE"})
+    revoked = await db.certificates.count_documents({"status": "REVOKED"})
+    
+    # Verifications today (UTC)
+    from app.services.verification_service import get_verifications_count_today
+    verifications_today = await get_verifications_count_today(db)
+    
+    return {
+        "total": total,
+        "active": active,
+        "revoked": revoked,
+        "verifications_today": verifications_today
+    }
+
+async def get_qr_code_binary(certificate_id: str, db) -> bytes | None:
+    """
+    Returns the QR code image as raw bytes (PNG).
+    """
+    cert = await get_certificate(certificate_id, db)
+    if not cert:
+        return None
+        
+    verify_url = cert["qr"]["url"]
+    from app.services.qr_service import generate_qr_binary
+    return generate_qr_binary(verify_url)

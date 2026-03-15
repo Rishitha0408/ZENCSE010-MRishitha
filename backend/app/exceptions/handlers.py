@@ -23,7 +23,7 @@ async def certificate_not_found_handler(request: Request, exc: CertificateNotFou
     return JSONResponse(
         status_code=404, 
         content={
-            "error": "The certificate you are looking for could not be found.",
+            "error": "Certificate not found",
             "certificate_id": exc.certificate_id
         }
     )
@@ -36,7 +36,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     return JSONResponse(
         status_code=422, 
         content={
-            "error": "The data you provided is invalid.",
+            "error": "Validation failed",
             "details": exc.errors()
         }
     )
@@ -52,6 +52,6 @@ async def generic_error_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500, 
         content={
-            "error": "An unexpected error occurred on our side. Please try again later."
+            "error": "Internal server error"
         }
     )

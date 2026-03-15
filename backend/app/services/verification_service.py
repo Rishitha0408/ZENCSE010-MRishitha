@@ -29,11 +29,11 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
         await db.verification_logs.insert_one(log.model_dump())
         
         return {
-            "is_valid": False,
             "status": "NOT_FOUND",
             "message": "No certificate found with the provided ID.",
             "verified_at": log.verified_at,
-            "certificate_id": certificate_id
+            "certificate_id": certificate_id,
+            "data": {}
         }
 
     # STEP 2: Verify the Cryptographic Signature.
@@ -57,11 +57,11 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
         await db.verification_logs.insert_one(log.model_dump())
         
         return {
-            "is_valid": False,
             "status": "TAMPERED",
             "message": "Warning: The certificate data appears to have been altered!",
             "verified_at": log.verified_at,
-            "certificate_id": certificate_id
+            "certificate_id": certificate_id,
+            "data": cert_doc
         }
 
     # STEP 3: Check the Revocation Status.
@@ -75,12 +75,11 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
         await db.verification_logs.insert_one(log.model_dump())
         
         return {
-            "is_valid": False,
             "status": "REVOKED",
-            "message": f"This certificate was revoked on {cert_doc['revocation']['revokedAt']}.",
-            "reason": cert_doc['revocation']['reason'],
+            "message": "This certificate has been revoked and is no longer valid.",
             "verified_at": log.verified_at,
-            "certificate_id": certificate_id
+            "certificate_id": certificate_id,
+            "data": cert_doc
         }
 
     # SUCCESS: The certificate is both authentic and active.
@@ -90,7 +89,6 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
         client_ip=client_ip
     )
     
-    # Update verification stats on the certificate record.
     await db.certificates.update_one(
         {"certificate_id": certificate_id},
         {
@@ -98,14 +96,23 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
             "$set": {"last_verified_at": log.verified_at}
         }
     )
-    # Save the success log.
     await db.verification_logs.insert_one(log.model_dump())
 
     return {
-        "is_valid": True,
         "status": "VALID",
         "message": "Certificate verified successfully. This credential is authentic.",
         "verified_at": log.verified_at,
         "certificate_id": certificate_id,
         "data": cert_doc
     }
+
+async def get_verifications_count_today(db) -> int:
+    """
+    Counts the number of verification attempts recorded today (UTC).
+    """
+    now = datetime.now(timezone.utc)
+    start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    
+    return await db.verification_logs.count_documents({
+        "verified_at": {"$gte": start_of_day}
+    })

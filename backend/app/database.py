@@ -31,7 +31,7 @@ async def create_indexes():
     # STEP 1: Connect to the Database.
     # We prefer the URL from settings, but fall back to the environment if necessary.
     mongodb_url = os.environ.get("MONGODB_URL", settings.mongodb_url)
-    client = AsyncIOMotorClient(mongodb_url)
+    client = AsyncIOMotorClient(mongodb_url, serverSelectionTimeoutMS=5000)
     # Connect specifically to the 'certishield' database.
     db = client.certishield
     

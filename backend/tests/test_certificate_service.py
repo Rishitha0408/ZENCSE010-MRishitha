@@ -77,7 +77,7 @@ class TestCertificateService(unittest.IsolatedAsyncioTestCase):
         
         # Assertions on the chain
         mock_db.certificates.find.assert_called_once_with({}, {"_id": 0})
-        mock_cursor.sort.assert_called_once_with("created_at", pymongo.DESCENDING)
+        mock_cursor.sort.assert_called_once_with("issued_at", pymongo.DESCENDING)
         mock_cursor.skip.assert_called_once_with(0)
         mock_cursor.limit.assert_called_once_with(20)
         mock_cursor.to_list.assert_called_once_with(length=20)
@@ -94,7 +94,7 @@ class TestCertificateService(unittest.IsolatedAsyncioTestCase):
 
         from app.services.certificate_service import revoke_certificate
         
-        result = await revoke_certificate("CERT-123", "Mistake", "AdminUser", mock_db)
+        result = await revoke_certificate("CERT-123", mock_db, "Mistake", "AdminUser")
         
         self.assertTrue(result)
         mock_db.certificates.update_one.assert_called_once()
@@ -113,7 +113,7 @@ class TestCertificateService(unittest.IsolatedAsyncioTestCase):
 
         from app.services.certificate_service import revoke_certificate
         
-        result = await revoke_certificate("CERT-999", "Mistake", "AdminUser", mock_db)
+        result = await revoke_certificate("CERT-999", mock_db, "Mistake", "AdminUser")
         
         self.assertFalse(result)
 

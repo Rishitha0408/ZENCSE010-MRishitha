@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
+    container_name: certshield-db
     ports:
       - "27017:27017"
     volumes:
@@ -10,28 +9,48 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: unless-stopped
 
   backend:
     build:
       context: ./backend
+    container_name: certshield-api
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
-      - MONGO_URL=mongodb://admin:password@mongodb:27017/
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/CertShield?authSource=admin
+    volumes:
+      - ./backend/keys:/app/keys
     depends_on:
       - mongodb
+    restart: unless-stopped
 
-  admin-ui:
+  frontend-admin:
     build:
-      context: ./admin-ui
+      context: ./frontend-admin
+    container_name: certshield-admin
     ports:
       - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
 
-  verification-portal:
+  frontend-portal:
     build:
-      context: ./verification-portal
+      context: ./frontend-portal
+    container_name: certshield-portal
     ports:
       - "3001:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   mongodb_data:
+    name: certshield_mongo_volume

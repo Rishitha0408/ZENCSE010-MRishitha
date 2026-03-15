@@ -51,3 +51,21 @@ def generate_qr_base64(verification_url: str) -> str:
     base64_img = base64.b64encode(img_bytes).decode('utf-8')
     
     return base64_img
+
+def generate_qr_binary(verification_url: str) -> bytes:
+    """
+    Creates an image of a QR code and returns it as raw bytes (PNG).
+    """
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(verification_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    return buffer.getvalue()

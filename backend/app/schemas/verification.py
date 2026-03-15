@@ -13,18 +13,13 @@ class VerificationResult(BaseModel):
     """
     The structured response for a certificate verification check.
     """
-    
-    # Is the certificate authentic and valid?
-    is_valid: bool
-    
-    # The current status: VALID, REVOKED, or TAMPERED.
-    status: Literal["VALID", "REVOKED", "TAMPERED", "NOT_FOUND"]
-    
-    # Optional message explaining the verification result.
-    message: str
-    
-    # The time the verification was performed.
-    verified_at: datetime
-    
-    # The certificate ID that was checked.
+    result: Literal["VALID", "REVOKED", "TAMPERED", "NOT_FOUND"]
     certificate_id: str
+    recipient_name: Optional[str] = None
+    course_title: Optional[str] = None
+    issued_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    institution_name: Optional[str] = None
+    verified_at: datetime
+    message: str
+    linkedin_share_url: Optional[str] = None

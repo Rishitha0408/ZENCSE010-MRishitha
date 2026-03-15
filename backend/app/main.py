@@ -10,7 +10,7 @@ middleware, rate limiting, error handling, and all the different API routes.
 from contextlib import asynccontextmanager
 # 'FastAPI' is the modern web framework we use for building our API.
 # 'Request' allows us to access information about incoming user requests.
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 # 'CORSMiddleware' handles "Cross-Origin Resource Sharing," which allows your 
 # frontend (on a different port) to securely communicate with this backend.
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +31,8 @@ from app.exceptions.handlers import (
     validation_error_handler,
     generic_error_handler
 )
-# Internal rate limiting settings.
+# Internal configuration and rate limiting settings.
+from app.config import settings
 from app.middleware.rate_limiter import limiter
 
 @asynccontextmanager
@@ -41,8 +42,12 @@ async def lifespan(app: FastAPI):
     It's the perfect place to open and close connections to the database.
     """
     # STARTUP: Connect to the database and prepare indexes.
-    await database.create_indexes()
-    print("[SYSTEM] CertShield API is now online and connected to database.")
+    try:
+        await database.create_indexes()
+        print("[SYSTEM] CertShield API is now online and connected to database.")
+    except Exception as e:
+        print(f"[ERROR] Database connection failed: {e}")
+        print("[SYSTEM] API starting in offline mode (DB-dependent features will fail).")
     
     yield # The application runs while this 'yield' is active.
     
@@ -62,7 +67,7 @@ app = FastAPI(
 # During development, we allow any origin ("*") to make it easier to test from local browsers.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,9 +86,12 @@ app.add_exception_handler(Exception, generic_error_handler)
 
 # STEP 6: Include Application Routers.
 # This organizes our API into logical sections like "/certificates" and "/admin".
-app.include_router(certificates.router, prefix="/certificates", tags=["Certificates"])
-app.include_router(verification.router, prefix="/verify", tags=["Verification"])
-app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+v1_router = APIRouter()
+v1_router.include_router(certificates.router, prefix="/certificates", tags=["Certificates"])
+v1_router.include_router(verification.router, prefix="/verify", tags=["Verification"])
+v1_router.include_router(admin.router, tags=["Admin"]) # Admin router handles /stats and other admin routes
+
+app.include_router(v1_router, prefix="/api/v1")
 
 @app.get("/")
 @limiter.limit("5/minute")

@@ -12,17 +12,18 @@ from fastapi import Header, HTTPException
 # 'app.config' contains the expected API key we compare against.
 from app.config import settings
 
-async def verify_api_key(x_api_key: str = Header(...)) -> None:
+from typing import Optional
+
+async def verify_api_key(x_api_key: Optional[str] = Header(None)) -> None:
     """
     Security check that validates an 'X-API-Key' header.
     
     If the key is missing or incorrect, it immediately blocks the request 
     and sends back a 401 Unauthorized response.
     """
-    # 'compare_digest' is a security best practice that prevents hackers from 
-    # guessing keys by measuring how long the comparison takes.
-    if not secrets.compare_digest(x_api_key, settings.api_key):
+    # If the key is missing or doesn't match, return 401 (Satisfies US-16)
+    if not x_api_key or not secrets.compare_digest(x_api_key, settings.api_key):
         raise HTTPException(
             status_code=401, 
-            detail="Unauthorized: Access to this endpoint requires a valid API key."
+            detail="Invalid API Key"
         )

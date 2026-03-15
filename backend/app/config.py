@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # The base URL used when generating verification links and QR codes for certificates.
     verify_base_url: str = "http://localhost:8000/verify"
 
+    # List of allowed origins for CORS. Used to restrict admin dashboard access.
+    allowed_origins: list[str] = ["*"]
+
     class Config:
         """
         Configuration for the Settings class.

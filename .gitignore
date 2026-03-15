@@ -1,7 +1,22 @@
+# Security
 keys/
+.env
+
+# Python
 __pycache__/
 *.pyc
-.env
+.venv/
+env/
+venv/
+*.log
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Temporary
 error.txt
 test_out.txt
-*.log
+tmp/
+*.tmp
