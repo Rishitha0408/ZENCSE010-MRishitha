@@ -83,8 +83,13 @@ async def get_certificate_by_id(
             status_code=404, 
             detail=f"Certificate not found" # Handled by custom exception if we use it
         )
-        
-    return cert
+    
+    # Generate QR base64 on the fly for the UI
+    from app.services.qr_service import generate_qr_base64
+    qr_b64 = generate_qr_base64(cert["qr"]["url"])
+    
+    # Return document with QR code included
+    return {**cert, "qr_code_base64": qr_b64}
 
 @router.put("/{certificate_id}/revoke")
 @limiter.limit("5/minute")

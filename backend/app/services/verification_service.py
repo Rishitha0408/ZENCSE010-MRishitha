@@ -38,11 +38,12 @@ async def verify_certificate_logic(certificate_id: str, client_ip: str, db) -> d
 
     # STEP 2: Verify the Cryptographic Signature.
     # We rebuild the signed data package to check for tampering.
+    # We use the same strftime format as in the issuance service for consistency.
     data_to_verify = {
         "certificate_id": cert_doc["certificate_id"],
         "recipient": cert_doc["recipient"],
         "certificate": cert_doc["certificate"],
-        "issued_at": cert_doc["issued_at"].isoformat() if isinstance(cert_doc["issued_at"], datetime) else cert_doc["issued_at"]
+        "issued_at": cert_doc["issued_at"].strftime("%Y-%m-%dT%H:%M:%SZ") if isinstance(cert_doc["issued_at"], datetime) else cert_doc["issued_at"]
     }
     
     is_authentic = verify_certificate(data_to_verify, cert_doc["signature"]["value"])

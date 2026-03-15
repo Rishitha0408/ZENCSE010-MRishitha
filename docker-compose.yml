@@ -23,6 +23,7 @@ services:
       - MONGODB_URL=mongodb://admin:password@mongodb:27017/CertShield?authSource=admin
     volumes:
       - ./backend/keys:/app/keys
+      - ./backend:/app
     depends_on:
       - mongodb
     restart: unless-stopped
@@ -35,6 +36,9 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend-admin/src:/app/src
+      - ./frontend-admin/public:/app/public
     depends_on:
       - backend
     restart: unless-stopped
@@ -47,6 +51,9 @@ services:
       - "3001:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend-portal/src:/app/src
+      - ./frontend-portal/public:/app/public
     depends_on:
       - backend
     restart: unless-stopped

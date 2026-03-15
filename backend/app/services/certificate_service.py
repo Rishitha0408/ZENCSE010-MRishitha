@@ -37,11 +37,13 @@ async def issue_certificate(request, db):
     
     # STEP 2: Tamper-Proofing.
     # We collect the core certificate information into a dictionary to be digitally signed.
+    # We normalize the ISO string to exclude microseconds for consistency across lookups.
+    issued_at_str = issued_at.strftime("%Y-%m-%dT%H:%M:%SZ")
     data_to_sign = {
         "certificate_id": cert_id,
         "recipient": request.recipient.model_dump(),
         "certificate": request.certificate.model_dump(),
-        "issued_at": issued_at.isoformat()
+        "issued_at": issued_at_str
     }
     # Create the cryptographic signature and a unique data hash (fingerprint).
     signature_b64, data_hash = sign_certificate(data_to_sign)
@@ -108,7 +110,19 @@ async def list_certificates(db, skip: int = 0, limit: int = 20) -> list[dict]:
     # Use 'issued_at' or 'created_at'? The previous code used 'created_at'.
     # Checking what's in the document. CertificateDocument has 'issued_at'.
     cursor = db.certificates.find({}, {"_id": 0}).sort("issued_at", pymongo.DESCENDING).skip(skip).limit(limit)
-    return await cursor.to_list(length=limit)
+    results = await cursor.to_list(length=limit)
+    
+    # Map raw DB documents to the schema expected by the frontend
+    return [
+        {
+            "certificate_id": cert["certificate_id"],
+            "recipient_name": cert["recipient"]["name"],
+            "course_title": cert["certificate"]["title"],
+            "issued_at": cert["issued_at"],
+            "status": cert["status"]
+        }
+        for cert in results
+    ]
 
 async def revoke_certificate(certificate_id: str, db, reason: str = "Revoked by admin", revoked_by: str = "admin") -> bool:
     """

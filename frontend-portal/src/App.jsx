@@ -8,9 +8,10 @@ const VerificationPortal = () => {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [verificationMode, setVerificationMode] = useState('manual'); // 'manual' or 'qr'
     const searchInputRef = React.useRef(null);
 
-    // Extract ID from URL if present (e.g., /verify/CERT-123 or /v/CERT-123)
+    // Extract ID from URL if present
     useEffect(() => {
         const path = window.location.pathname;
         const match = path.match(/\/(?:verify|v)\/(CERT-[\w-]+)/);
@@ -18,13 +19,6 @@ const VerificationPortal = () => {
             verifyCertificate(match[1]);
         }
     }, []);
-
-    const focusSearch = () => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-            searchInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    };
 
     const verifyCertificate = async (id) => {
         const targetId = id || certId;
@@ -37,7 +31,7 @@ const VerificationPortal = () => {
         try {
             const response = await axios.get(`${API_URL}/api/v1/verify/${targetId}`);
             setResult(response.data);
-            if (!id && certId) setCertId(''); // Clear input on manual search success
+            if (!id && certId) setCertId('');
         } catch (err) {
             setError(err.response?.data?.error || 'Verification failed. Please check the ID and try again.');
         } finally {
@@ -57,65 +51,68 @@ const VerificationPortal = () => {
                 <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-6">
                     Verify <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Credential</span>
                 </h1>
-                <p className="text-lg text-slate-500 max-w-xl mx-auto">
-                    Instantly validate the authenticity of any CertShield digital certificate using its unique identifier.
-                </p>
+
+                {/* Mode Selector Dropdown/Toggle */}
+                <div className="flex justify-center mb-12">
+                    <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1">
+                        <button
+                            onClick={() => setVerificationMode('manual')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${verificationMode === 'manual' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Manual Search
+                        </button>
+                        <button
+                            onClick={() => setVerificationMode('qr')}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${verificationMode === 'qr' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Scan QR Code
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {!result && (
                 <div className="max-w-2xl mx-auto mb-12 animate-fade-in-up">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                        <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 text-left border-4 border-transparent hover:border-blue-400">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {verificationMode === 'qr' ? (
+                        <div className="bg-blue-600 p-12 rounded-[2.5rem] text-white shadow-2xl shadow-blue-200 text-center border-4 border-blue-400">
+                            <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mb-6 mx-auto">
+                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-bold mb-2">Scan QR Code</h3>
-                            <p className="text-blue-100 text-sm">Point your camera at the certificate QR code for instant results.</p>
+                            <h3 className="text-3xl font-black mb-4">Scanner Active</h3>
+                            <p className="text-blue-100 text-lg mb-8 italic">Please point your camera at the certificate's QR code or upload a photo.</p>
+                            <button className="bg-white text-blue-600 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all active:scale-95 shadow-lg">
+                                OPEN CAMERA
+                            </button>
                         </div>
-                        <button
-                            onClick={focusSearch}
-                            className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100 transition-all hover:scale-[1.02] active:scale-95 text-left group border-4 border-transparent hover:border-slate-200"
-                        >
-                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-bold mb-2 text-slate-900">Manual Search</h3>
-                            <p className="text-slate-500 text-sm">Enter the unique Certificate ID below to verify the credential.</p>
-                        </button>
-                    </div>
-
-                    <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                        <div className="relative bg-white p-2 rounded-[1.8rem] shadow-2xl border border-slate-100">
-                            <div className="flex flex-col md:flex-row gap-2">
-                                <div className="flex-1 relative">
-                                    <input
-                                        ref={searchInputRef}
-                                        type="text"
-                                        placeholder="Enter Certificate ID..."
-                                        className="w-full px-8 py-5 rounded-2xl bg-slate-50 border-none focus:ring-0 outline-none text-lg font-medium tracking-wide"
-                                        value={certId}
-                                        onChange={(e) => setCertId(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && verifyCertificate()}
-                                    />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 font-mono text-xs hidden md:block">
-                                        PRESS ENTER ↵
+                    ) : (
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                            <div className="relative bg-white p-2 rounded-[1.8rem] shadow-2xl border border-slate-100">
+                                <div className="flex flex-col md:flex-row gap-2">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            ref={searchInputRef}
+                                            type="text"
+                                            placeholder="Enter Certificate ID (e.g. CERT-xxx)..."
+                                            className="w-full px-8 py-5 rounded-2xl bg-slate-50 border-none focus:ring-0 outline-none text-lg font-medium tracking-wide"
+                                            value={certId}
+                                            onChange={(e) => setCertId(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && verifyCertificate()}
+                                        />
                                     </div>
+                                    <button
+                                        onClick={() => verifyCertificate()}
+                                        disabled={loading}
+                                        className="bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-2xl font-bold transition-all shadow-xl hover:shadow-slate-200 active:scale-95 disabled:opacity-50"
+                                    >
+                                        {loading ? 'VERIFYING...' : 'VERIFY NOW'}
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => verifyCertificate()}
-                                    disabled={loading}
-                                    className="bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-2xl font-bold transition-all shadow-xl hover:shadow-slate-200 active:scale-95 disabled:opacity-50"
-                                >
-                                    {loading ? 'VERIFYING...' : 'VERIFY NOW'}
-                                </button>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 

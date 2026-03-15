@@ -16,17 +16,22 @@ const StatCard = ({ title, value, color, loading }) => (
 export default function Dashboard() {
     const navigate = useNavigate()
     const [stats, setStats] = useState(null)
+    const [recentCerts, setRecentCerts] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    const fetchStats = async (isRefresh = false) => {
+    const fetchData = async (isRefresh = false) => {
         if (!isRefresh) setLoading(true)
         setError(null)
         try {
-            const data = await apiClient.get('/api/v1/stats/')
-            setStats(data)
+            const [statsRes, certsRes] = await Promise.all([
+                apiClient.get('/api/v1/stats/'),
+                apiClient.get('/api/v1/certificates/?limit=5')
+            ])
+            setStats(statsRes)
+            setRecentCerts(certsRes)
         } catch (err) {
-            console.error('Failed to fetch stats:', err)
+            console.error('Failed to fetch dashboard data:', err)
             setError('Could not load statistics.')
         } finally {
             setLoading(false)
@@ -34,14 +39,14 @@ export default function Dashboard() {
     }
 
     useEffect(() => {
-        fetchStats()
-        const interval = setInterval(() => fetchStats(true), 30000)
+        fetchData()
+        const interval = setInterval(() => fetchData(true), 30000)
         return () => clearInterval(interval)
     }, [])
 
     if (error) return (
         <div className="p-6 text-red-600 bg-red-50 rounded-lg m-6 border border-red-200">
-            {error} <button onClick={() => fetchStats()} className="underline ml-2">Retry</button>
+            {error} <button onClick={() => fetchData()} className="underline ml-2">Retry</button>
         </div>
     )
 
@@ -79,17 +84,78 @@ export default function Dashboard() {
                 />
             </div>
 
-            <div className="mt-12 bg-blue-50 p-8 rounded-2xl border border-blue-100 flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-bold text-blue-900">Certificate Generation</h2>
-                    <p className="text-blue-700 mt-1">Issue new tamper-proof certificates via the API or CLI.</p>
+            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-6 border-b border-gray-50 flex justify-between items-center">
+                        <h2 className="font-bold text-gray-900">Recent Certificates</h2>
+                        <button onClick={() => navigate('/certificates')} className="text-blue-600 text-sm hover:underline">View All</button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-gray-400 uppercase text-xs font-semibold">
+                                <tr>
+                                    <th className="px-6 py-4">Recipient</th>
+                                    <th className="px-6 py-4">Title</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {recentCerts.map((cert) => (
+                                    <tr key={cert.certificate_id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{cert.recipient_name}</td>
+                                        <td className="px-6 py-4 text-gray-500">{cert.course_title}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${cert.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {cert.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                onClick={() => navigate(`/certificates/${cert.certificate_id}`)}
+                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                            >
+                                                Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {recentCerts.length === 0 && !loading && (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-gray-400">No certificates issued yet.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <button
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
-                    onClick={() => navigate('/issue')}
-                >
-                    Issue Certificate
-                </button>
+
+                <div className="bg-blue-600 rounded-2xl p-8 text-white flex flex-col justify-between shadow-xl shadow-blue-100">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-4">Quick Issue</h2>
+                        <p className="text-blue-100 mb-8">Generate a new tamper-proof digital certificate in seconds.</p>
+                        <ul className="space-y-3 text-sm text-blue-50">
+                            <li className="flex items-center gap-2">
+                                <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px]">✓</span>
+                                Cryptographic Security
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px]">✓</span>
+                                Instant QR Validation
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px]">✓</span>
+                                LinkedIn Integration
+                            </li>
+                        </ul>
+                    </div>
+                    <button
+                        className="bg-white text-blue-600 w-full py-4 rounded-xl font-bold hover:bg-blue-50 transition-colors shadow-lg"
+                        onClick={() => navigate('/issue')}
+                    >
+                        Create Certificate
+                    </button>
+                </div>
             </div>
         </div>
     )
