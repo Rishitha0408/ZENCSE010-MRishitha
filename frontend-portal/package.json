@@ -1,5 +1,5 @@
 {
-    "name": "certishield-verification-portal",
+    "name": "frontend-portal",
     "version": "1.0.0",
     "private": true,
     "dependencies": {

@@ -1,5 +1,5 @@
 {
-    "name": "certishield-admin-ui",
+    "name": "frontend-admin",
     "version": "1.0.0",
     "private": true,
     "dependencies": {
